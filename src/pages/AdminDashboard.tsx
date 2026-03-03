@@ -202,6 +202,22 @@ const [orderSearchQuery, setOrderSearchQuery] = useState('');
     }
   }, [navigate]);
 
+  // Auto-refresh cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchData();
+      fetchBcvRate();
+      if (adminUser?.role === 'vendedor') {
+        fetchCommissions(adminUser.id);
+        fetchLoggedInSellerPerformance(adminUser.id);
+      } else if (adminUser?.role === 'administrador') {
+        fetchSellerPerformance();
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [adminUser]);
+
   const fetchPermissions = async () => {
     try {
       const res = await api.get('/admin/permissions');
@@ -2374,7 +2390,7 @@ const [orderSearchQuery, setOrderSearchQuery] = useState('');
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {availableRoles.map(role => {
-                        const rolePerms = allPermissions.filter(p => p.role === role).map(p => p.permission);
+                        const rolePerms = allPermissions[role] || [];
                         return (
                           <div key={role} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                             <div className="flex justify-between items-center mb-4">
