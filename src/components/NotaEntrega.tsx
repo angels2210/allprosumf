@@ -12,7 +12,153 @@ interface NotaEntregaProps {
 
 export default function NotaEntrega({ order, onClose, onConfirm, bcvRate, logoUrl }: NotaEntregaProps) {
   const handlePrint = () => {
-    window.print();
+    const notaNum = order.id ? `NE${String(order.id).padStart(5, '0')}` : 'BORRADOR';
+    const fechaStr = new Date(order.created_at || new Date()).toLocaleDateString('es-VE');
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7);
+    const venceStr = dueDate.toLocaleDateString('es-VE');
+    const totalBs = (order.total * bcvRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const emptyRows = Math.max(0, 5 - (order.items?.length || 0));
+
+    const logoHtml = logoUrl
+      ? `<img src="${logoUrl}" alt="Logo" style="height:60px;object-fit:contain;display:block;margin-bottom:4px;" />`
+      : `<div style="font-size:20px;font-weight:900;color:#0F158F;">ALLPROSUM 33 C.A</div>`;
+
+    const itemsHtml = (order.items || []).map((item: any) => `
+      <tr>
+        <td style="padding:6px 4px;text-align:center;border:1px solid #d1d5db;">${item.quantity}</td>
+        <td style="padding:6px 8px;text-align:center;border:1px solid #d1d5db;text-transform:uppercase;">${item.product_name}</td>
+        <td style="padding:6px 4px;text-align:center;border:1px solid #d1d5db;">$${Number(item.price).toFixed(2)}</td>
+        <td style="padding:6px 4px;text-align:center;border:1px solid #d1d5db;font-weight:bold;">$${(Number(item.price) * Number(item.quantity)).toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    const emptyRowsHtml = Array(emptyRows).fill(`
+      <tr style="height:28px;">
+        <td style="border:1px solid #e5e7eb;"></td>
+        <td style="border:1px solid #e5e7eb;"></td>
+        <td style="border:1px solid #e5e7eb;"></td>
+        <td style="border:1px solid #e5e7eb;"></td>
+      </tr>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Nota de Entrega - ${notaNum}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #111; background: white; padding: 16px; }
+    @page { size: Letter portrait; margin: 10mm 14mm; }
+    table { border-collapse: collapse; width: 100%; }
+  </style>
+</head>
+<body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+    <div>
+      ${logoHtml}
+      <div style="font-size:9px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Tu Mejor Aliado Comercial</div>
+      <div style="font-size:11px;font-weight:bold;margin-top:4px;">J-507568458</div>
+    </div>
+    <div style="text-align:right;font-size:11px;line-height:1.8;">
+      <div><b>Fecha:</b> ${fechaStr}</div>
+      <div><b>Vence:</b> ${venceStr}</div>
+      <div><b>Nota:</b> ${notaNum}</div>
+    </div>
+  </div>
+
+  <table style="margin-bottom:12px;border:1px solid #d1d5db;font-size:10px;">
+    <tr>
+      <td style="padding:5px 8px;border:1px solid #d1d5db;width:50%;">
+        <div style="font-size:8px;color:#6b7280;text-transform:uppercase;font-weight:bold;">Razón Social / Comercio</div>
+        <div style="font-weight:bold;">${order.business_name || order.customer_name || '-'}</div>
+      </td>
+      <td style="padding:5px 8px;border:1px solid #d1d5db;width:50%;">
+        <div style="font-size:8px;color:#6b7280;text-transform:uppercase;font-weight:bold;">RIF / Cédula</div>
+        <div style="font-weight:bold;">${order.customer_id_type || ''}${order.customer_id_number || '-'}</div>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2" style="padding:5px 8px;border:1px solid #d1d5db;">
+        <div style="font-size:8px;color:#6b7280;text-transform:uppercase;font-weight:bold;">Dirección de Entrega</div>
+        <div>${order.address || '-'}</div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:5px 8px;border:1px solid #d1d5db;">
+        <div style="font-size:8px;color:#6b7280;text-transform:uppercase;font-weight:bold;">Atención a</div>
+        <div style="font-weight:bold;">${order.customer_name || '-'}</div>
+      </td>
+      <td style="padding:5px 8px;border:1px solid #d1d5db;">
+        <div style="font-size:8px;color:#6b7280;text-transform:uppercase;font-weight:bold;">Teléfono Contacto</div>
+        <div style="font-weight:bold;">${order.customer_phone || '-'}</div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:5px 8px;border:1px solid #d1d5db;">
+        <div style="font-size:8px;color:#6b7280;text-transform:uppercase;font-weight:bold;">Condición de Pago</div>
+        <div style="font-weight:900;color:#D8121B;text-transform:uppercase;">${(order.payment_method || '').replace('_', ' ')}</div>
+      </td>
+      <td style="padding:5px 8px;border:1px solid #d1d5db;">
+        <div style="font-size:8px;color:#6b7280;text-transform:uppercase;font-weight:bold;">Vendedor</div>
+        <div style="font-weight:bold;">${order.seller_name_code || '-'}</div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="text-align:center;font-weight:bold;background:#f3f4f6;padding:5px;text-transform:uppercase;letter-spacing:3px;font-size:11px;margin-bottom:8px;border:1px solid #e5e7eb;">
+    Nota de Entrega
+  </div>
+
+  <table style="font-size:11px;">
+    <thead>
+      <tr style="background:#f9fafb;">
+        <th style="padding:6px 4px;text-align:center;border:1px solid #d1d5db;font-size:9px;text-transform:uppercase;width:80px;">Unidades</th>
+        <th style="padding:6px 8px;text-align:center;border:1px solid #d1d5db;font-size:9px;text-transform:uppercase;">Descripción</th>
+        <th style="padding:6px 4px;text-align:center;border:1px solid #d1d5db;font-size:9px;text-transform:uppercase;width:100px;">Precio Unit.</th>
+        <th style="padding:6px 4px;text-align:center;border:1px solid #d1d5db;font-size:9px;text-transform:uppercase;width:100px;">Total USD</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsHtml}
+      ${emptyRowsHtml}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2" style="border:1px solid #d1d5db;padding:5px 8px;"></td>
+        <td style="border:1px solid #d1d5db;padding:5px 4px;text-align:right;font-weight:bold;font-size:9px;text-transform:uppercase;background:#f9fafb;">Sub Total</td>
+        <td style="border:1px solid #d1d5db;padding:5px 4px;text-align:center;font-weight:bold;">$${Number(order.total).toFixed(2)}</td>
+      </tr>
+      <tr style="background:#f3f4f6;">
+        <td colspan="2" style="border:1px solid #d1d5db;padding:5px 8px;font-size:9px;font-style:italic;color:#6b7280;">
+          Tasa BCV Referencial: <b>${bcvRate.toFixed(2)} Bs/$</b>
+        </td>
+        <td style="border:1px solid #d1d5db;padding:5px 4px;text-align:right;font-weight:900;font-size:10px;text-transform:uppercase;color:#D8121B;">Total Bs.</td>
+        <td style="border:1px solid #d1d5db;padding:5px 4px;text-align:center;font-weight:900;font-size:14px;color:#D8121B;">${totalBs}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div style="margin-top:32px;text-align:center;">
+    <div style="width:180px;border-top:1px solid #111;margin:0 auto 4px auto;"></div>
+    <div style="font-size:10px;font-weight:bold;text-transform:uppercase;">Recibido</div>
+  </div>
+
+  <div style="margin-top:16px;border-top:1px solid #e5e7eb;padding-top:8px;text-align:center;font-size:9px;color:#6b7280;line-height:1.8;">
+    <div>El pago debe ser realizado a la tasa BCV del día a cancelar.</div>
+    <div style="font-weight:bold;color:#374151;">ALLPROSUM 33 C.A / J-507568458</div>
+    <div>Pago Móvil: 0414-2920094 / CL. 20978548 / MERCANTIL</div>
+  </div>
+</body>
+</html>`;
+
+    const printWindow = window.open('', '_blank', 'width=850,height=750');
+    if (!printWindow) return;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
   };
 
   const today = new Date();

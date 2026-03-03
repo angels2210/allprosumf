@@ -98,6 +98,7 @@ export default function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showPaymentReferenceModal, setShowPaymentReferenceModal] = useState(false);
   const [paymentReference, setPaymentReference] = useState('');
@@ -347,10 +348,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchClientDetails = useCallback(debounce(async (idType: string, idNumber: string) => {
-    if (!idType || !idNumber) {
-      return;
-    }
+  const fetchClientDetails = useCallback(async (idType: string, idNumber: string) => {
+    if (!idType || !idNumber || idNumber.length < 6) return;
     try {
       const res = await api.get('/clients/check', {
         params: { id_type: idType, id_number: idNumber }
@@ -365,22 +364,12 @@ export default function AdminDashboard() {
           address: client.address || '',
           manager_name: client.manager_name || '',
         }));
-        toast.success('Información del cliente cargada automáticamente');
-      } else {
-        setSellerOrder(prev => ({
-          ...prev,
-          customer_name: '',
-          customer_phone: '',
-          business_name: '',
-          address: '',
-          manager_name: '',
-        }));
+        toast.success('Cliente encontrado');
       }
     } catch (error) {
       console.error('Error fetching client details:', error);
-      toast.error('Error al buscar cliente');
     }
-  }, 500), []);
+  }, []);
 
   const fetchCommissions = async (sellerId: number) => {
     try {
@@ -815,6 +804,7 @@ export default function AdminDashboard() {
   };
 
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredProductsForOrder = products.filter(p => p.name.toLowerCase().includes(orderSearchQuery.toLowerCase()));
   const pendingOrdersCount = orders.filter(o => o.status === 'pending').length;
 
   const canAccess = (tab: string) => {
