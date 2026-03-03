@@ -98,7 +98,8 @@ export default function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showPaymentReferenceModal, setShowPaymentReferenceModal] = useState(false);
   const [paymentReference, setPaymentReference] = useState('');
@@ -819,7 +820,11 @@ const [orderSearchQuery, setOrderSearchQuery] = useState('');
     });
   };
 
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredProducts = products.filter(p => {
+  const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const matchesCategory = selectedCategory === '' || p.category === selectedCategory;
+  return matchesSearch && matchesCategory;
+});
   const filteredProductsForOrder = products.filter(p => p.name.toLowerCase().includes(orderSearchQuery.toLowerCase()));
   const pendingOrdersCount = orders.filter(o => o.status === 'pending').length;
 
@@ -1337,6 +1342,26 @@ const [orderSearchQuery, setOrderSearchQuery] = useState('');
                 </motion.div>
               )}
 
+<div className="flex flex-wrap gap-2 mb-6">
+  <button
+    onClick={() => setSelectedCategory('')}
+    className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedCategory === '' ? 'bg-[#0F158F] text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-300'}`}
+  >
+    Todas ({products.length})
+  </button>
+  {categories.map(cat => {
+    const count = products.filter(p => p.category === cat.name).length;
+    return (
+      <button
+        key={cat.id}
+        onClick={() => setSelectedCategory(cat.name)}
+        className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedCategory === cat.name ? 'bg-[#0F158F] text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-300'}`}
+      >
+        {cat.name} ({count})
+      </button>
+    );
+  })}
+</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredProducts.map(product => (
                   <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
